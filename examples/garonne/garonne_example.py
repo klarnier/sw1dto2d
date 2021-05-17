@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import LineString, mapping, Polygon, shape
 
-import dassflow1d
 from sw1dto2d import SW1Dto2D
 
 def export_to_shp(fname, geo):

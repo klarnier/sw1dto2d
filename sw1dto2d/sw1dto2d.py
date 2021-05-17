@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import geopy.distance
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Polygon
 
 
 class SW1Dto2D():
@@ -59,6 +59,8 @@ class SW1Dto2D():
         
         Parameters
         ----------
+            dx (float): Resampling spacing (in curvilinear axis)
+            optimize_normals (bool): True to optimize normals to prevent cutlines instersections
             enforce_length (bool): True to enforce length of the centerline to the total distance computed from xs
         """
         
@@ -301,13 +303,17 @@ class SW1Dto2D():
         return xs_normals, intersect_flag
 
         
-    def compute_xs_geometry(self, it=None):
+    def compute_xs_cutlines(self, it=None):
         """ 
-        Compute geometries of the cross-sections on the centerline
+        Compute cutlines of the cross-sections on the centerline
         
         Parameters
         ----------
-            # TODO
+            it (int): index of time occurence (in the H and W arrays)
+        
+        Return
+        ------
+            list of LineStrings objects for the cutlines
         """
         
         
@@ -341,6 +347,56 @@ class SW1Dto2D():
             xs_lines.append(LineString([(point1.longitude, point1.latitude), (point2.longitude, point2.latitude)]))
             
         return xs_lines
+
+        
+    def compute_water_mask(self, it=None):
+        """ 
+        Compute watermask
+        
+        Parameters
+        ----------
+            it (int): index of time occurence (in the H and W arrays)
+        
+        Return
+        ------
+            Polygon object of the water mask
+        """
+        
+        
+        xs_coords = self.xs_coords
+        xs_normals = self.xs_normals
+        angles = np.arctan2(xs_normals[:, 0], xs_normals[:, 1]) * 180.0 / np.pi
+        
+        # Compute widths
+        if it is None or it == "max":
+            Wit = np.max(self.W, axis=0)
+        elif it == "min":
+            Wit = np.min(self.W, axis=0)
+        elif it == "mean":
+            Wit = np.mean(self.W, axis=0)
+        else:
+            Wit = self.W[it, :]
+        if self.xs_base.size != self.xs.size:
+            Wit = np.interp(self.xs, self.xs_base, Wit)
+        
+        left_points = []
+        right_points = []
+        for ix in range(0, xs_coords.shape[0]):
+            Wdemi = 0.5 * Wit[ix]
+            bearing1 = angles[ix]
+            if angles[ix] > 180.0:
+                bearing2 = angles[ix] - 180.0
+            else:
+                bearing2 = angles[ix] + 180.0
+            center = (xs_coords[ix, 1], xs_coords[ix, 0])
+            point1 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing1)
+            point2 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing2)
+            left_points.append((point2.longitude, point2.latitude))
+            right_points.insert(0, (point1.longitude, point1.latitude))
+            
+        polygon = Polygon(right_points + left_points)
+            
+        return polygon
         
         
         
