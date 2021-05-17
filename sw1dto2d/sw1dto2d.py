@@ -18,7 +18,7 @@ class SW1Dto2D():
         
         Parameters
         ----------
-            xs (np.ndarray): array of curvilinear abscissae
+            xs (numpy.ndarray): array of curvilinear abscissae
             H (numpy.ndarray): array of water heights (dim1=time, dim2=space)
             W (numpy.ndarray): array of top widths (dim1=time, dim2=space)
             centerline (shapely.geometry.Linestring): linestring of the centerline
@@ -107,11 +107,12 @@ class SW1Dto2D():
         
         Parameters
         ----------
+            xp (numpy.ndarray): array of curvilinear abscissae
             enforce_length (bool): True to enforce length of the centerline to the total distance computed from xs
 
         Return
         ------
-            (np.ndarray) array of alpha
+            (numpy.ndarray) array of alpha
         """
         
         if enforce_length:
@@ -127,7 +128,7 @@ class SW1Dto2D():
 
         Return
         ------
-            (np.ndarray) array of alpha values
+            (numpy.ndarray) array of alpha values
         """
         
         coords = np.array(self.centerline.coords)
@@ -146,8 +147,12 @@ class SW1Dto2D():
         
         Parameters
         ----------
-            xs_alpha (np.ndarray): array of alpha (ratio of length) values for the cross-sections
-            cl_alpha (np.ndarray): array of alpha (ratio of length) values for the points of the centerline
+            xs_alpha (numpy.ndarray): array of alpha (ratio of length) values for the cross-sections
+            cl_alpha (numpy.ndarray): array of alpha (ratio of length) values for the points of the centerline
+
+        Return
+        ------
+            (numpy.ndarray) array of coordinates
         """
         
         coords = np.array(self.centerline.coords)
@@ -163,8 +168,12 @@ class SW1Dto2D():
         
         Parameters
         ----------
-            xs_alpha (np.ndarray): array of alpha (ratio of length) values for the cross-sections
-            cl_alpha (np.ndarray): array of alpha (ratio of length) values for the points of the centerline
+            xs_alpha (numpy.ndarray): array of alpha (ratio of length) values for the cross-sections
+            cl_alpha (numpy.ndarray): array of alpha (ratio of length) values for the points of the centerline
+
+        Return
+        ------
+            (numpy.ndarray) array of normals
         """
         
         coords = np.array(self.centerline.coords)
@@ -187,11 +196,17 @@ class SW1Dto2D():
         
     def optimize_xs_normals(self, xs_coords, xs_normals):
         """ 
-        # TODO
+        Optimize normals by filtering to prevent intersections
         
         Parameters
         ----------
-            # TODO
+            xs_coords (numpy.ndarray): array of coordinates of the cross-sections
+            xs_normals (numpy.ndarray): array of normals of the cross-sections
+
+        Return
+        ------
+            (tuple) tuple (xs_normals, intersect_flag) where xs_normals is a array of normals and intersect_flag an 
+            array of intersection flag
         """
         
         print("-" * 60)
@@ -395,9 +410,5 @@ class SW1Dto2D():
             right_points.insert(0, (point1.longitude, point1.latitude))
             
         polygon = Polygon(right_points + left_points)
-            
+
         return polygon
-        
-        
-        
-    
