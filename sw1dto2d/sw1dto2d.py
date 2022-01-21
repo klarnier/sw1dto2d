@@ -1,12 +1,42 @@
 # coding: utf-8
 
+# Copyright (c) 2019-2022 CS GROUP - France, University of Toulouse (France)
+#
+# This file is part of the sw1dto2d Package. sw1dto2d is a package to convert
+# 1D Shallow water results to 2D. It is designed to compute 2D geographic 
+# representation of the results of 1D shallow water models.
+#
+# This software is governed by the CeCILL license under French law and abiding 
+# by the rules of distribution of free software. You can use, modify and/or 
+# redistribute the software under the terms of the CeCILL license as circulated 
+# by CEA, CNRS and INRIA at the following URL: "http://www.cecill.info".
+#
+# As a counterpart to the access to the source code and rights to copy, modify 
+# and redistribute granted by the license, users are provided only with a 
+# limited warranty and the software's author, the holder of the economic 
+# rights, and the successive licensors have only limited liability.
+#
+# In this respect, the user's attention is drawn to the risks associated with 
+# loading, using, modifying and/or developing or reproducing the software by 
+# the user in light of its specific status of free software, that may mean that 
+# it is complicated to manipulate, and that also therefore means that it is 
+# reserved for developers and experienced professionals having in-depth 
+# computer knowledge. Users are therefore encouraged to load and test the
+# software's suitability as regards their requirements in conditions enabling 
+# the security of their systems and/or data to be ensured and, more generally, 
+# to use and operate it in the same conditions as regards security.
+#
+# The fact that you are presently reading this means that you have had 
+# knowledge of the CeCILL license and that you accept its terms.
+
 from __future__ import print_function
 
+import geopy.distance
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import geopy.distance
-from shapely.geometry import LineString, Polygon
+from pyproj.transformer import Transformer
+from shapely.geometry import LineString, Point, Polygon
 
 
 class SW1Dto2D():
@@ -54,8 +84,7 @@ class SW1Dto2D():
         self.centerline = centerline
         
     def compute_xs_parameters(self, dx=None, optimize_normals=True, enforce_length=True):
-        """ 
-        Compute cross-sections parameters (coordinates and normals)
+        """ Compute cross-sections parameters (coordinates and normals)
         
         Parameters
         ----------
@@ -102,8 +131,7 @@ class SW1Dto2D():
         self.xs_coords = xs_coords
         
     def compute_xs_alpha(self, xs, enforce_length=True):
-        """ 
-        Compute alpha (ratio of length) of the cross-sections on the centerline
+        """ Compute alpha (ratio of length) of the cross-sections on the centerline
         
         Parameters
         ----------
@@ -123,8 +151,7 @@ class SW1Dto2D():
         return xs_alpha
         
     def compute_cl_alpha(self):
-        """ 
-        Compute alpha (ratio of length) of the points of the centerline
+        """ Compute alpha (ratio of length) of the points of the centerline
 
         Return
         ------
@@ -142,8 +169,7 @@ class SW1Dto2D():
         
         
     def compute_xs_coords(self, xs_alpha, cl_alpha):
-        """ 
-        Compute positions of the cross-sections on the centerline
+        """ Compute positions of the cross-sections on the centerline
         
         Parameters
         ----------
@@ -163,8 +189,7 @@ class SW1Dto2D():
         
         
     def compute_xs_normals(self, xs_alpha, cl_alpha):
-        """ 
-        Compute normals of the cross-sections on the centerline
+        """ Compute normals of the cross-sections on the centerline
         
         Parameters
         ----------
@@ -195,8 +220,7 @@ class SW1Dto2D():
 
         
     def optimize_xs_normals(self, xs_coords, xs_normals):
-        """ 
-        Optimize normals by filtering to prevent intersections
+        """ Optimize normals by filtering to prevent intersections
         
         Parameters
         ----------
@@ -230,6 +254,7 @@ class SW1Dto2D():
             for ix in range(0, xs_coords.shape[0]):
                 Wdemi = 0.5 * Wmax[ix]
                 bearing1 = angles[ix]
+                # TODO correct bearing !!! 0=North, 90=east, ect :/
                 if angles[ix] > 180.0:
                     bearing2 = angles[ix] - 180.0
                 else:
@@ -308,19 +333,14 @@ class SW1Dto2D():
                 # Recompute normals
                 xs_normals[:, 0] = np.sin(angles * np.pi / 180.0)
                 xs_normals[:, 1] = np.cos(angles * np.pi / 180.0)
-                
-                #plt.plot(angles_base)
-                #plt.plot(angles)
-                #plt.show()
     
         print("")
             
         return xs_normals, intersect_flag
 
         
-    def compute_xs_cutlines(self, it=None):
-        """ 
-        Compute cutlines of the cross-sections on the centerline
+    def compute_xs_cutlines(self, it=None, extend=None):
+        """ Compute cutlines of the cross-sections on the centerline
         
         Parameters
         ----------
@@ -347,6 +367,8 @@ class SW1Dto2D():
             Wit = self.W[it, :]
         if self.xs_base.size != self.xs.size:
             Wit = np.interp(self.xs, self.xs_base, Wit)
+        if extend is not None:
+            Wit = Wit + extend
         
         xs_lines = []
         for ix in range(0, xs_coords.shape[0]):
@@ -365,8 +387,7 @@ class SW1Dto2D():
 
         
     def compute_water_mask(self, it=None):
-        """ 
-        Compute watermask
+        """ Compute watermask
         
         Parameters
         ----------
@@ -412,3 +433,103 @@ class SW1Dto2D():
         polygon = Polygon(right_points + left_points)
 
         return polygon
+
+        
+    def compute_xs_points(self, main_channel=None, overbanks=None, extend=None, overbank_slope=0.0001, epsg=4326):
+        """ Compute cutlines of the cross-sections on the centerline
+        
+        Parameters
+        ----------
+            it (int): index of time occurence (in the H and W arrays)
+        
+        Return
+        ------
+            list of LineStrings objects for the cutlines
+        """
+        
+        
+        xs_coords = self.xs_coords
+        xs_normals = self.xs_normals
+        angles = np.arctan2(xs_normals[:, 0], xs_normals[:, 1]) * 180.0 / np.pi
+
+        Wit = np.max(self.W, axis=0)
+        if self.xs_base.size != self.xs.size:
+            Wit = np.interp(self.xs, self.xs_base, Wit)
+            
+        # Create pyporj transformer
+        transformer = Transformer.from_crs(4326, epsg, always_xy=True)
+        
+        points = []
+        attributes = []
+        for ix in range(0, xs_coords.shape[0]):
+            
+            index0 = len(points)
+            
+            # Compute left overbank points
+            Hmax = np.max(self.H[:, ix])
+            alpha_widths = np.linspace(1.0, 0.0, overbanks, endpoint=False)
+            for index in range(0, overbanks):
+                dist = -(0.5 * Wit[ix] + alpha_widths[index] * extend)
+                bearing1 = angles[ix]
+                center = (xs_coords[ix, 1], xs_coords[ix, 0])
+                point = geopy.distance.distance(meters=dist).destination(center, bearing=bearing1)
+                points.append(Point(point.longitude, point.latitude))
+                x, y = transformer.transform(point.longitude, point.latitude)
+                z = Hmax + alpha_widths[index] * overbank_slope * extend
+                attributes.append({"xs_id" : ix,
+                                   "xsnd_id" : index,
+                                   "abs" : self.xs[ix],
+                                   "loc" : "LOB",
+                                   "x" : x,
+                                   "y" : y,
+                                   "z": z})
+            
+            # Interpolate (H,W) tuples sorted with increasing H for the main channel
+            Hx = self.H[:, ix]
+            Wx = self.W[:, ix]
+            index_sorted = np.argsort(Hx)
+            Hx = Hx[index_sorted]
+            Wx = Wx[index_sorted]
+            
+            # Compute main channel points
+            alpha_widths = np.linspace(-0.5, 0.5, main_channel, endpoint=True)
+            Wp = 2.0 * np.abs(alpha_widths * Wit[ix]) 
+            Hp = np.interp(Wp, Wx, Hx) 
+            for index in range(0, main_channel):
+                dist = alpha_widths[index] * Wit[ix]
+                bearing1 = angles[ix]
+                center = (xs_coords[ix, 1], xs_coords[ix, 0])
+                point = geopy.distance.distance(meters=dist).destination(center, bearing=bearing1)
+                points.append(Point(point.longitude, point.latitude))
+                x, y = transformer.transform(point.longitude, point.latitude)
+                z = Hp[index]
+                attributes.append({"xs_id" : ix,
+                                   "xsnd_id" : index + overbanks,
+                                   "abs" : self.xs[ix],
+                                   "loc" : "MC",
+                                   "x" : x,
+                                   "y" : y,
+                                   "z": z})
+
+            
+            # Compute right overbank points
+            Hmax = np.max(self.H[:, ix])
+            alpha_widths = np.linspace(1.0, 0.0, overbanks, endpoint=False)
+            alpha_widths = 1.0 - alpha_widths 
+            for index in range(0, overbanks):
+                dist = 0.5 * Wit[ix] + alpha_widths[index] * extend
+                bearing1 = angles[ix]
+                center = (xs_coords[ix, 1], xs_coords[ix, 0])
+                point = geopy.distance.distance(meters=dist).destination(center, bearing=bearing1)
+                points.append(Point(point.longitude, point.latitude))
+                x, y = transformer.transform(point.longitude, point.latitude)
+                z = Hmax + alpha_widths[index] * overbank_slope * extend
+                attributes.append({"xs_id" : ix,
+                                   "xsnd_id" : index + main_channel + overbanks,
+                                   "abs" : self.xs[ix],
+                                   "loc" : "ROB",
+                                   "x" : x,
+                                   "y" : y,
+                                   "z": z})
+            
+        return points, attributes

@@ -31,6 +31,7 @@
 
 import fiona
 from fiona.crs import from_epsg
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
@@ -64,17 +65,42 @@ def export_to_shp(fname, geo):
                    "properties": {"ID": 0}}
         fout.write(feature)
         fout.close()
+        
+def export_sections_points(fname, points, attributes):
+    """ Export points defining the cross-sections to a ESRI/Shapefile
+    
+    Parameters
+    ----------
+        fname (str): Path of the shp output file
+        points (list): List of points
+        attributes (list): List of attributes dictionnaries for each point
+    """
+
+    schema = {"geometry": "Point",
+              "properties": {("xs_id", "int"),
+                             ("xsnd_id", "int"),
+                             ("abs", "float"),
+                             ("loc", "str"),
+                             ("x", "float"),
+                             ("y", "float"),
+                             ("z", "float")}}
+    fout =  fiona.open(fname, "w", driver="ESRI Shapefile", crs=from_epsg(4326), schema=schema)
+    for index, point in enumerate(points):
+        feature = {"geometry": mapping(point),
+                    "properties": attributes[index]}
+        fout.write(feature)
+    fout.close()
 
 # Create output directory if necessary
 if not os.path.isdir("out"):
     os.mkdir("out")
-        
+
 # Load centerline    
 layer = fiona.open("centerline.shp", "r")
 centerline = shape(layer[0]["geometry"])
 
 # Load Results
-results = pd.read_csv("Garonne2019_results_selection.csv", sep=";")
+results = pd.read_csv("brahmaputra_results.csv", sep=";")
 xs = results["xs"].unique()
 W = results["W"].values
 W = W.reshape((W.size//xs.size, xs.size))
@@ -85,23 +111,16 @@ H = H.reshape((W.size//xs.size, xs.size))
 sw1dto2d = SW1Dto2D(xs, H, W, centerline)
 
 # Compute cross-sections parameters without normals optimization
-sw1dto2d.compute_xs_parameters(dx=50, optimize_normals=False)
+sw1dto2d.compute_xs_parameters(optimize_normals=False)
 
 # Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
 lines = sw1dto2d.compute_xs_cutlines()
-export_to_shp("out/Garonne_cutlines_raw_normals.shp", lines)
-
-# Compute cross-sections parameters with normals optimization
-sw1dto2d.compute_xs_parameters(dx=50, optimize_normals=True)
+export_to_shp("out/Brahmaputra_cutlines.shp", lines)
 
 # Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
-lines = sw1dto2d.compute_xs_cutlines()
-export_to_shp("out/Garonne_cutlines_opt_normals.shp", lines)
+lines = sw1dto2d.compute_xs_cutlines(extend=500)
+export_to_shp("out/Brahmaputra_cutlines_extended.shp", lines)
 
-# Export maximum water mask (argument it=None for SW1Dto2D.compute_water_mask)
-poly = sw1dto2d.compute_water_mask()
-export_to_shp("out/Garonne_max_water_mask.shp", poly)
-
-# Export water mask at 10th time (argument it=10 for SW1Dto2D.compute_water_mask)
-poly = sw1dto2d.compute_water_mask(it=10)
-export_to_shp("out/Garonne_water_mask_it10.shp", poly)
+# Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
+points, attributes = sw1dto2d.compute_xs_points(main_channel=100, overbanks=10, extend=2000, epsg=32645)
+export_sections_points("out/Brahmaputra_cutlines_points.shp", points, attributes)
