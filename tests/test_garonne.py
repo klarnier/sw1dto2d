@@ -65,43 +65,46 @@ def export_to_shp(fname, geo):
         fout.write(feature)
         fout.close()
 
-# Create output directory if necessary
-if not os.path.isdir("out"):
-    os.mkdir("out")
-        
-# Load centerline    
-layer = fiona.open("centerline.shp", "r")
-centerline = shape(layer[0]["geometry"])
+def test_garonne():
+    """Test garonne cross-section lines and points reconstruction."""
 
-# Load Results
-results = pd.read_csv("Garonne2019_results_selection.csv", sep=";")
-xs = results["xs"].unique()
-W = results["W"].values
-W = W.reshape((W.size//xs.size, xs.size))
-H = results["H"].values
-H = H.reshape((W.size//xs.size, xs.size))
+    # Create output directory if necessary
+    if not os.path.isdir("out"):
+        os.mkdir("out")
+            
+    # Load centerline    
+    layer = fiona.open("centerline.shp", "r")
+    centerline = shape(layer[0]["geometry"])
 
-# Instanciate SW1Dto2D object
-sw1dto2d = SW1Dto2D(xs, H, W, centerline)
+    # Load Results
+    results = pd.read_csv("Garonne2019_results_selection.csv", sep=";")
+    xs = results["xs"].unique()
+    W = results["W"].values
+    W = W.reshape((W.size//xs.size, xs.size))
+    H = results["H"].values
+    H = H.reshape((W.size//xs.size, xs.size))
 
-# Compute cross-sections parameters without normals optimization
-sw1dto2d.compute_xs_parameters(dx=50, optimize_normals=False)
+    # Instanciate SW1Dto2D object
+    sw1dto2d = SW1Dto2D(xs, H, W, centerline)
 
-# Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
-lines = sw1dto2d.compute_xs_cutlines()
-export_to_shp("out/Garonne_cutlines_raw_normals.shp", lines)
+    # Compute cross-sections parameters without normals optimization
+    sw1dto2d.compute_xs_parameters(dx=50, optimize_normals=False)
 
-# Compute cross-sections parameters with normals optimization
-sw1dto2d.compute_xs_parameters(dx=50, optimize_normals=True)
+    # Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
+    lines = sw1dto2d.compute_xs_cutlines()
+    export_to_shp("out/Garonne_cutlines_raw_normals.shp", lines)
 
-# Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
-lines = sw1dto2d.compute_xs_cutlines()
-export_to_shp("out/Garonne_cutlines_opt_normals.shp", lines)
+    # Compute cross-sections parameters with normals optimization
+    sw1dto2d.compute_xs_parameters(dx=50, optimize_normals=True)
 
-# Export maximum water mask (argument it=None for SW1Dto2D.compute_water_mask)
-poly = sw1dto2d.compute_water_mask()
-export_to_shp("out/Garonne_max_water_mask.shp", poly)
+    # Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
+    lines = sw1dto2d.compute_xs_cutlines()
+    export_to_shp("out/Garonne_cutlines_opt_normals.shp", lines)
 
-# Export water mask at 10th time (argument it=10 for SW1Dto2D.compute_water_mask)
-poly = sw1dto2d.compute_water_mask(it=10)
-export_to_shp("out/Garonne_water_mask_it10.shp", poly)
+    # Export maximum water mask (argument it=None for SW1Dto2D.compute_water_mask)
+    poly = sw1dto2d.compute_water_mask()
+    export_to_shp("out/Garonne_max_water_mask.shp", poly)
+
+    # Export water mask at 10th time (argument it=10 for SW1Dto2D.compute_water_mask)
+    poly = sw1dto2d.compute_water_mask(it=10)
+    export_to_shp("out/Garonne_water_mask_it10.shp", poly)

@@ -102,6 +102,3 @@ def test_xs_normals():
     expected_normals = np.repeat([[nx, ny]], 11, axis=0)
     assert(np.allclose(xs_normals, expected_normals))
     
-if __name__ == "__main__":
-    test_xs_coords()
-    test_xs_normals()

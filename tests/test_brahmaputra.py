@@ -37,7 +37,7 @@ import os
 import pandas as pd
 from shapely.geometry import LineString, mapping, Polygon, shape
 
-from sw1dto2d import SW1Dto2D
+from sw1dto2d.sw1dto2d import SW1Dto2D
 
 def export_to_shp(fname, geo):
     """ Export a geometry or a list of geometries to a ESRI/Shapefile
@@ -91,36 +91,39 @@ def export_sections_points(fname, points, attributes):
         fout.write(feature)
     fout.close()
 
-# Create output directory if necessary
-if not os.path.isdir("out"):
-    os.mkdir("out")
+def test_brahmaputra():
+    """Test brahmaputra cross-section lines and points reconstruction."""
 
-# Load centerline    
-layer = fiona.open("centerline.shp", "r")
-centerline = shape(layer[0]["geometry"])
+    # Create output directory if necessary
+    if not os.path.isdir("out"):
+        os.mkdir("out")
 
-# Load Results
-results = pd.read_csv("brahmaputra_results.csv", sep=";")
-xs = results["xs"].unique()
-W = results["W"].values
-W = W.reshape((W.size//xs.size, xs.size))
-H = results["H"].values
-H = H.reshape((W.size//xs.size, xs.size))
+    # Load centerline    
+    layer = fiona.open("centerline.shp", "r")
+    centerline = shape(layer[0]["geometry"])
 
-# Instanciate SW1Dto2D object
-sw1dto2d = SW1Dto2D(xs, H, W, centerline)
+    # Load Results
+    results = pd.read_csv("brahmaputra_results.csv", sep=";")
+    xs = results["xs"].unique()
+    W = results["W"].values
+    W = W.reshape((W.size//xs.size, xs.size))
+    H = results["H"].values
+    H = H.reshape((W.size//xs.size, xs.size))
 
-# Compute cross-sections parameters without normals optimization
-sw1dto2d.compute_xs_parameters(optimize_normals=False)
+    # Instanciate SW1Dto2D object
+    sw1dto2d = SW1Dto2D(xs, H, W, centerline)
 
-# Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
-lines = sw1dto2d.compute_xs_cutlines()
-export_to_shp("out/Brahmaputra_cutlines.shp", lines)
+    # Compute cross-sections parameters without normals optimization
+    sw1dto2d.compute_xs_parameters(optimize_normals=False)
 
-# Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
-lines = sw1dto2d.compute_xs_cutlines(extend=500)
-export_to_shp("out/Brahmaputra_cutlines_extended.shp", lines)
+    # Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
+    lines = sw1dto2d.compute_xs_cutlines()
+    export_to_shp("out/Brahmaputra_cutlines.shp", lines)
 
-# Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
-points, attributes = sw1dto2d.compute_xs_points(main_channel=100, overbanks=10, extend=2000, epsg=32645)
-export_sections_points("out/Brahmaputra_cutlines_points.shp", points, attributes)
+    # Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
+    lines = sw1dto2d.compute_xs_cutlines(extend=500)
+    export_to_shp("out/Brahmaputra_cutlines_extended.shp", lines)
+
+    # Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
+    points, attributes = sw1dto2d.compute_xs_points(main_channel=100, overbanks=10, extend=2000, epsg=32645)
+    export_sections_points("out/Brahmaputra_cutlines_points.shp", points, attributes)
