@@ -32,7 +32,7 @@
 import numpy as np
 from shapely.geometry import LineString
 
-from sw1dto2d import SW1Dto2D
+from sw1dto2d.sw1dto2d import SW1Dto2D
 
 def test_xs_coords():
     """ Test computation of cross-sections coordinates on centerline
@@ -101,4 +101,3 @@ def test_xs_normals():
     ny = -dlon / norm2
     expected_normals = np.repeat([[nx, ny]], 11, axis=0)
     assert(np.allclose(xs_normals, expected_normals))
-    
