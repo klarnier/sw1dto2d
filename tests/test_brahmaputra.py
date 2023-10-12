@@ -54,7 +54,7 @@ def export_to_shp(fname, geo, sw1dto2d):
         fout =  fiona.open(fname, "w", driver="ESRI Shapefile", crs=from_epsg(4326), schema=schema)
         for index, line in enumerate(geo):
             feature = {"geometry": mapping(line),
-                       "properties": {"xs": sw1dto2d.xs[index]}}
+                       "properties": {"xs": sw1dto2d.curv_abscissa[index]}}
             fout.write(feature)
         fout.close()
     elif isinstance(geo, Polygon):
@@ -112,14 +112,21 @@ def test_brahmaputra():
         "data/brahmaputra/brahmaputra_results.csv"
     )
     results = pd.read_csv(results_path, sep=";")
-    xs = results["xs"].unique()
-    W = results["W"].values
-    W = W.reshape((W.size//xs.size, xs.size))
-    H = results["H"].values
-    H = H.reshape((W.size//xs.size, xs.size))
+    # xs = results["xs"].unique()
+    # W = results["W"].values
+    # W = W.reshape((W.size//xs.size, xs.size))
+    # H = results["H"].values
+    # H = H.reshape((W.size//xs.size, xs.size))
 
     # Instanciate SW1Dto2D object
-    sw1dto2d = SW1Dto2D(xs, H, W, centerline)
+    # sw1dto2d = SW1Dto2D(xs, H, W, centerline)
+    sw1dto2d = SW1Dto2D(
+        model_output_1d=results,
+        curvilinear_abscissa_key="xs",
+        heights_key="H",
+        widths_key="W",
+        centerline=centerline
+    )
 
     # Compute cross-sections parameters without normals optimization
     sw1dto2d.compute_xs_parameters(optimize_normals=False)

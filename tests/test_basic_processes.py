@@ -30,6 +30,7 @@
 # knowledge of the CeCILL license and that you accept its terms.
 
 import numpy as np
+import pandas as pd
 from shapely.geometry import LineString
 
 from sw1dto2d.sw1dto2d import SW1Dto2D
@@ -39,7 +40,8 @@ def test_xs_coords():
     """
     
     # Create curvilinear abscissae
-    xs = np.linspace(0.0, 10.0, 11, endpoint=True)
+    xs_elem = np.linspace(0.0, 10.0, 11, endpoint=True)
+    xs = np.repeat(xs_elem, 10)
 
     # Create centerline
     lon = np.linspace(-0.1, 0.1, 51, endpoint=True)
@@ -48,18 +50,31 @@ def test_xs_coords():
     centerline = LineString(coords)
     
     # Create arrays of wse and widths
-    H = np.random.uniform(0.0, 10.0, (10, 11))
-    W = np.random.uniform(10.0, 100.0, (10, 11))
+    H = np.random.uniform(0.0, 10.0, (10 * 11))
+    W = np.random.uniform(10.0, 100.0, (10 * 11))
     
+    # Create output data
+    output_data = pd.DataFrame()
+    output_data["xs"] = xs
+    output_data["W"] = W
+    output_data["H"] = H
+
     # Instanciate SW1Dto2D object
-    sw1dto2d = SW1Dto2D(xs, H, W, centerline)
+    # sw1dto2d = SW1Dto2D(xs, H, W, centerline)
+    sw1dto2d = SW1Dto2D(
+        model_output_1d=output_data,
+        curvilinear_abscissa_key="xs",
+        heights_key="H",
+        widths_key="W",
+        centerline=centerline
+    )
 
     # Compute alphas
-    xs_alpha = sw1dto2d.compute_xs_alpha(xs, enforce_length=True)
-    cl_alpha = sw1dto2d.compute_cl_alpha()
+    xs_alpha = sw1dto2d._compute_xs_alpha(xs, enforce_length=True)
+    cl_alpha = sw1dto2d._compute_cl_alpha()
     
     # Compute cross-sections coordinates on centerline
-    coords = sw1dto2d.compute_xs_coords(xs_alpha, cl_alpha)
+    coords = sw1dto2d._compute_xs_coords(xs_alpha, cl_alpha)
     
     # Test computed coordinates
     xs_lon = np.linspace(-0.1, 0.1, 11, endpoint=True)
@@ -71,7 +86,8 @@ def test_xs_normals():
     """
     
     # Create curvilinear abscissae
-    xs = np.linspace(0.0, 10.0, 11, endpoint=True)
+    xs_elem = np.linspace(0.0, 10.0, 11, endpoint=True)
+    xs = np.repeat(xs_elem, 10)
 
     # Create centerline
     lon = np.linspace(-0.1, 0.1, 51, endpoint=True)
@@ -80,18 +96,31 @@ def test_xs_normals():
     centerline = LineString(coords)
     
     # Create arrays of wse and widths
-    H = np.random.uniform(0.0, 10.0, (10, 11))
-    W = np.random.uniform(10.0, 100.0, (10, 11))
+    H = np.random.uniform(0.0, 10.0, (10 * 11))
+    W = np.random.uniform(10.0, 100.0, (10 * 11))
     
+    # Create output data
+    output_data = pd.DataFrame()
+    output_data["xs"] = xs
+    output_data["W"] = W
+    output_data["H"] = H
+
     # Instanciate SW1Dto2D object
-    sw1dto2d = SW1Dto2D(xs, H, W, centerline)
+    # sw1dto2d = SW1Dto2D(xs, H, W, centerline)
+    sw1dto2d = SW1Dto2D(
+        model_output_1d=output_data,
+        curvilinear_abscissa_key="xs",
+        heights_key="H",
+        widths_key="W",
+        centerline=centerline
+    )
 
     # Compute alphas
-    xs_alpha = sw1dto2d.compute_xs_alpha(xs, enforce_length=True)
-    cl_alpha = sw1dto2d.compute_cl_alpha()
+    xs_alpha = sw1dto2d._compute_xs_alpha(xs, enforce_length=True)
+    cl_alpha = sw1dto2d._compute_cl_alpha()
     
     # Compute cross-sections normals
-    xs_normals = sw1dto2d.compute_xs_normals(xs_alpha, cl_alpha)
+    xs_normals = sw1dto2d._compute_xs_normals(xs_alpha, cl_alpha)
     
     # Test computed normals
     dlon = lon[1] - lon[0]
