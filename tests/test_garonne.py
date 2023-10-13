@@ -116,6 +116,9 @@ def test_garonne():
     lines = sw1dto2d.compute_xs_cutlines()
     export_to_shp("out/Garonne_cutlines_opt_normals.shp", lines, sw1dto2d)
 
+    # Compute cross-section points
+    points = sw1dto2d.compute_xs_points(main_channel=100, overbanks=10, extend=2000, epsg=4326)
+
     # Export maximum water mask (argument it=None for SW1Dto2D.compute_water_mask)
     poly = sw1dto2d.compute_water_mask()
     export_to_shp("out/Garonne_max_water_mask.shp", poly, sw1dto2d)
