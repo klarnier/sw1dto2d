@@ -12,3 +12,13 @@ exclude = "(.eggs|.git|.mypy_cache|.nox|.tox|_build|build|dist|venv)"
 [tool.isort]
 profile = 'black'
 line_length = 120
+
+[project]
+name = "SW1Dto2D"
+dynamic = ["version"]
+
+[project.urls]
+"HomePage" = "https://github.com/klarnier/sw1dto2d"
+
+[tool.setuptools.dynamic]
+version = {attr = "sw1dto2d.__version__"}
