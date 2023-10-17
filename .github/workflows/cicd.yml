@@ -31,7 +31,7 @@ jobs:
 
       - name: Build and upload to PyPI
         run: |
-          python python -m build
+          python -m build
           twine upload dist/*
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
