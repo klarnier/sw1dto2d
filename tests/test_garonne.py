@@ -86,14 +86,8 @@ def test_garonne():
         "data/garonne/Garonne2019_results_selection.csv"
     )
     results = pd.read_csv(results_path, sep=";")
-    # xs = results["xs"].unique()
-    # W = results["W"].values
-    # W = W.reshape((W.size//xs.size, xs.size))
-    # H = results["H"].values
-    # H = H.reshape((W.size//xs.size, xs.size))
 
     # Instanciate SW1Dto2D object
-    # sw1dto2d = SW1Dto2D(xs, H, W, centerline)
     sw1dto2d = SW1Dto2D(
         model_output_1d=results,
         curvilinear_abscissa_key="xs",
@@ -104,20 +98,25 @@ def test_garonne():
 
     # Compute cross-sections parameters without normals optimization
     sw1dto2d.compute_xs_parameters(dx=50, optimize_normals=False)
+    # sw1dto2d.compute_xs_parameters(optimize_normals=False)
 
     # Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
     lines = sw1dto2d.compute_xs_cutlines()
     export_to_shp("out/Garonne_cutlines_raw_normals.shp", lines, sw1dto2d)
 
+    # Compute cross-section points
+    points, attributes = sw1dto2d.compute_xs_points(main_channel=10, overbanks=10, extend=2000, epsg=4326)
+
     # Compute cross-sections parameters with normals optimization
-    sw1dto2d.compute_xs_parameters(dx=50, optimize_normals=True)
+    sw1dto2d.compute_xs_parameters(dx=50, optimize_normals=False)
+    # sw1dto2d.compute_xs_parameters(optimize_normals=True)
 
     # Export cross-sections cut lines (with maximum width as argument it=None for SW1Dto2D.compute_xs_geometry)
     lines = sw1dto2d.compute_xs_cutlines()
     export_to_shp("out/Garonne_cutlines_opt_normals.shp", lines, sw1dto2d)
 
     # Compute cross-section points
-    points = sw1dto2d.compute_xs_points(main_channel=100, overbanks=10, extend=2000, epsg=4326)
+    points, attributes = sw1dto2d.compute_xs_points(main_channel=100, overbanks=10, extend=2000, epsg=4326)
 
     # Export maximum water mask (argument it=None for SW1Dto2D.compute_water_mask)
     poly = sw1dto2d.compute_water_mask()

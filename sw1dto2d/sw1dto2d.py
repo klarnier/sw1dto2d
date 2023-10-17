@@ -495,6 +495,8 @@ class SW1Dto2D:
                 and attributes the corresponding points attributes
         """
 
+        logging.info(f"Heigths shape = {np.shape(self._heights)}")
+
         xs_coords = self._curv_absc_coords
         xs_normals = self._curv_absc_normals
         angles = np.arctan2(xs_normals[:, 0], xs_normals[:, 1]) * 180.0 / np.pi

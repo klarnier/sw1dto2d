@@ -112,14 +112,8 @@ def test_brahmaputra():
         "data/brahmaputra/brahmaputra_results.csv"
     )
     results = pd.read_csv(results_path, sep=";")
-    # xs = results["xs"].unique()
-    # W = results["W"].values
-    # W = W.reshape((W.size//xs.size, xs.size))
-    # H = results["H"].values
-    # H = H.reshape((W.size//xs.size, xs.size))
 
     # Instanciate SW1Dto2D object
-    # sw1dto2d = SW1Dto2D(xs, H, W, centerline)
     sw1dto2d = SW1Dto2D(
         model_output_1d=results,
         curvilinear_abscissa_key="xs",
