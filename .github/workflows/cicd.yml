@@ -16,12 +16,12 @@ jobs:
           source sw1dto2d_env/bin/activate
           python -m pip install --upgrade pip
           pip install -e . && pip install -e .[dev]
-          #working-directory: .
+        working-directory: ..
 
       - name: Run tests
         run: |
           pytest
-          #working-directory: .
+        working-directory: ..
 
       - name: Build and upload to PyPI
         run: |
@@ -30,4 +30,4 @@ jobs:
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWD }}
-          #working-directory: .
+        working-directory: ..
