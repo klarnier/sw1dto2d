@@ -1,0 +1,39 @@
+name: sw1dto2d CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8.10
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . && pip install -e .[dev]
+        working-directory: .
+
+      - name: Run tests
+        run: |
+          pytest
+        working-directory: .
+
+      - name: Build and upload to PyPI
+        run: |
+          python -m build
+          twine upload dist/*
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWD }}
+        working-directory: .
