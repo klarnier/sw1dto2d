@@ -29,4 +29,7 @@
 # The fact that you are presently reading this means that you have had 
 # knowledge of the CeCILL license and that you accept its terms.
 
-__version__ = "0.0.4"
+from .sw1dto2d import SW1Dto2D
+
+__version__ = "0.0.5"
+
