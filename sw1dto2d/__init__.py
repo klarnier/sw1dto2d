@@ -31,5 +31,5 @@
 
 from .sw1dto2d import SW1Dto2D
 
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 

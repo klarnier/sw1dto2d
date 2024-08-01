@@ -14,7 +14,7 @@ profile = 'black'
 line_length = 120
 
 [project]
-name = "SW1Dto2D"
+name = "sw1dto2d"
 dynamic = ["version"]
 
 [project.urls]

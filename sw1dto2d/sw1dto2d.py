@@ -39,8 +39,10 @@ from typing import Dict, List, Tuple
 import geopy.distance
 import numpy as np
 import pandas as pd
+import pyproj
 from pyproj.transformer import Transformer
 from shapely.geometry import LineString, Point, Polygon
+import sw1dto2d.cartesian
 
 
 class SW1Dto2D:
@@ -53,6 +55,7 @@ class SW1Dto2D:
         heights_key: str,
         widths_key: str,
         centerline: LineString,
+        crs=4326
     ):
         """
         Constructor.
@@ -81,6 +84,20 @@ class SW1Dto2D:
         self._heights = heights.reshape((widths.size // self._curv_abscissa.size, self._curv_abscissa.size))
 
         self._centerline = centerline
+        if isinstance(crs, int):
+            self._crs = pyproj.crs.CRS.from_epsg(crs)
+        else:
+            self._crs = pyproj.crs.CRS(crs)
+
+        # Setup distance method from CRS
+        if self._crs.to_epsg() == 4326:
+            self._distance = geopy.distance.distance
+            self._shapely_point = lambda x: Point(x.longitude, x.latitude)
+        elif self._crs.axis_info[0].unit_name == "metre" and self._crs.axis_info[1].unit_name == "metre":
+            self._distance = sw1dto2d.cartesian.distance
+            self._shapely_point = lambda x: x
+        else:
+            raise RuntimeError("Centerline must have either WGS84 CRS or a CRS with coordinates in meters.")
 
     @property
     def curv_abscissa(self):
@@ -104,6 +121,7 @@ class SW1Dto2D:
         logging.info("Compute cross-sections parameters (coordinates and normals)")
         logging.info("-" * 60)
 
+        # Check centerline is set
         if self._centerline is None:
             raise RuntimeError("centerline is not set yet")
 
@@ -283,9 +301,12 @@ class SW1Dto2D:
                     bearing2 = angles[ix] + 180.0
 
                 center = (xs_coords[ix, 1], xs_coords[ix, 0])
-                point1 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing1)
-                point2 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing2)
-                xs_lines.append(LineString([(point1.longitude, point1.latitude), (point2.longitude, point2.latitude)]))
+                point1 = self._shapely_point(self._distance(meters=Wdemi).destination(center, bearing=bearing1))
+                point2 = self._shapely_point(self._distance(meters=Wdemi).destination(center, bearing=bearing2))
+                # point1 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing1)
+                # point2 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing2)
+
+                xs_lines.append(LineString([(point1.x, point1.y), (point2.x, point2.y)]))
 
             # Flag intersecting lines
             intersect_flag = np.zeros(xs_coords.shape[0], dtype=int)
@@ -344,11 +365,11 @@ class SW1Dto2D:
                             bearing2 = new_angles[ix] + 180.0
 
                         center = (xs_coords[ix, 1], xs_coords[ix, 0])
-                        point1 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing1)
-                        point2 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing2)
-                        new_lines[ix] = LineString(
-                            [(point1.longitude, point1.latitude), (point2.longitude, point2.latitude)]
-                        )
+                        point1 = self._shapely_point(self._distance(meters=Wdemi).destination(center, bearing=bearing1))
+                        point2 = self._shapely_point(self._distance(meters=Wdemi).destination(center, bearing=bearing2))
+                        # point1 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing1)
+                        # point2 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing2)
+                        new_lines[ix] = LineString([(point1.x, point1.y), (point2.x, point2.y)])
 
                     # Check for remaining intersections
                     nintersect2 = 0
@@ -386,7 +407,7 @@ class SW1Dto2D:
         Parameters
         ----------
             it : index of time occurence (in the H and W arrays)
-            extend :
+            extend : extra extension. Final cutline has length W[it] + extend
 
         Return
         ------
@@ -424,9 +445,11 @@ class SW1Dto2D:
                 bearing2 = angles[ix] + 180.0
 
             center = (xs_coords[ix, 1], xs_coords[ix, 0])
-            point1 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing1)
-            point2 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing2)
-            xs_lines.append(LineString([(point1.longitude, point1.latitude), (point2.longitude, point2.latitude)]))
+            point1 = self._shapely_point(self._distance(meters=Wdemi).destination(center, bearing=bearing1))
+            point2 = self._shapely_point(self._distance(meters=Wdemi).destination(center, bearing=bearing2))
+            # point1 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing1)
+            # point2 = geopy.distance.distance(meters=Wdemi).destination(center, bearing=bearing2)
+            xs_lines.append(LineString([(point1.x, point1.y), (point2.x, point2.y)]))
 
         return xs_lines
 
