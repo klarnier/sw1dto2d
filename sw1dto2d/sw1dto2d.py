@@ -88,7 +88,7 @@ class SW1Dto2D:
 
         return self._curv_abscissa
 
-    def compute_xs_parameters(self, dx: float = None, optimize_normals: bool = True, enforce_length: bool = True):
+    def compute_xs_parameters(self, dx: float = None, optimize_normals: bool = True, enforce_length: bool = True, optimize_normals_maxiter: int=1000):
         """
         Compute cross-sections parameters (coordinates and normals)
 
@@ -97,6 +97,7 @@ class SW1Dto2D:
             dx : Resampling spacing (in curvilinear axis)
             optimize_normals : True to optimize normals to prevent cutlines instersections
             enforce_length : True to enforce length of the centerline to the total distance computed from xs
+            optimize_normals_maxiter : Maximum number of iteration for normals optimization
         """
 
         logging.info("-" * 60)
@@ -133,7 +134,7 @@ class SW1Dto2D:
         # Optimize normals
         if optimize_normals is True:
             # xs_normals, intersect_flag = self._optimize_xs_normals(xs_coords, xs_normals)
-            xs_normals, _ = self._optimize_xs_normals(xs_coords, xs_normals)
+            xs_normals, _ = self._optimize_xs_normals(xs_coords, xs_normals, maxiter=optimize_normals_maxiter)
 
         self._curv_absc_normals = xs_normals
         self._curv_absc_coords = xs_coords
@@ -231,7 +232,7 @@ class SW1Dto2D:
         return np.stack((xs_nx, xs_ny), axis=-1)
 
     def _optimize_xs_normals(  # noqa: C901
-        self, xs_coords: np.ndarray, xs_normals: np.ndarray
+        self, xs_coords: np.ndarray, xs_normals: np.ndarray, maxiter: int=1000
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Optimize normals by filtering to prevent intersections
@@ -240,6 +241,7 @@ class SW1Dto2D:
         ----------
             xs_coords : array of coordinates of the cross-sections
             xs_normals : array of normals of the cross-sections
+            maxiter : Maximum number of iterations
 
         Return
         ------
@@ -262,7 +264,11 @@ class SW1Dto2D:
             Wmax = np.interp(self._curv_abscissa, self._curv_abscissa_base, Wmax)
 
         nintersect = 1
-        while nintersect > 0:
+        iter = 0
+        while nintersect > 0 and iter < maxiter:
+
+            iter += 1
+
             # Compute cross-sections lines
             xs_lines = []
 
@@ -365,6 +371,10 @@ class SW1Dto2D:
                 xs_normals[:, 0] = np.sin(angles * np.pi / 180.0)
                 xs_normals[:, 1] = np.cos(angles * np.pi / 180.0)
 
+        if iter >= maxiter:
+            logging.error("Optimisation failed: maximum iterations reached.")
+        else:
+            logging.info("Optimisation successful (%i iterations)." % iter)
         logging.info("")
 
         return xs_normals, intersect_flag
