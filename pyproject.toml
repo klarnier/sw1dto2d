@@ -1,24 +1,27 @@
-# pyproject.toml
-[build-system]
-requires = ["setuptools==62.1.0", "wheel", "setuptools_scm[toml]==6.4.2", "importlib_metadata"]
-build-backend = "setuptools.build_meta"
-[tool.setuptools_scm]
-
-[tool.black]
-# https://github.com/psf/black
-line-length = 120
-exclude = "(.eggs|.git|.mypy_cache|.nox|.tox|_build|build|dist|venv)"
-
-[tool.isort]
-profile = 'black'
-line_length = 120
-
 [project]
 name = "sw1dto2d"
-dynamic = ["version"]
+description = "Tool to convert results of a 1D Shallow Water model to 2D geometries"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file = "LICENSE"}
+authors = [
+  {email = "kevin.larnier@csgroup.eu"},
+  {name = "Kevin Larnier"}
+]
+maintainers = [
+  {name = "Kevin Larnier", email = "kevin.larnier@csgroup.eu"}
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python"
+]
 
-[project.urls]
-"HomePage" = "https://github.com/klarnier/sw1dto2d"
+dependencies = [
+  "geopy",
+  "matplotlib",
+  "numpy",
+  "pyproj",
+  "shapely",
+  "fiona",
+  "pandas"]
 
-[tool.setuptools.dynamic]
-version = {attr = "sw1dto2d.__version__"}
