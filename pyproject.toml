@@ -22,3 +22,8 @@ dependencies = [
   "shapely",
   "fiona",
   "pandas"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest"
+]
