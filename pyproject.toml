@@ -3,14 +3,11 @@ name = "sw1dto2d"
 description = "Tool to convert results of a 1D Shallow Water model to 2D geometries"
 readme = "README.md"
 version = "0.0.5"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = {file = "LICENSE"}
-authors = [
-  {email = "kevin.larnier@csgroup.eu"},
-  {name = "Kevin Larnier"}
-]
+authors = {file = "AUTHORS"}
 maintainers = [
-  {name = "Kevin Larnier", email = "kevin.larnier@csgroup.eu"}
+  "Kevin Larnier <kevin.larnier@hydro-matters.fr>"
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -25,4 +22,3 @@ dependencies = [
   "shapely",
   "fiona",
   "pandas"]
-
