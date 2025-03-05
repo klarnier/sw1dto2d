@@ -21,7 +21,8 @@ dependencies = [
   "pyproj",
   "shapely",
   "fiona",
-  "pandas"]
+  "pandas",
+  "typing_extensions"]
 
 [project.optional-dependencies]
 dev = [
