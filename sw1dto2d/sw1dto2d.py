@@ -69,6 +69,15 @@ class SW1Dto2D:
             centerline : river center line geometry
         """
 
+        # Retrieve or create logger
+        self._logger = logging.getLogger("sw1dto2d")
+        print("logger:", self._logger)
+        if self._logger.hasHandlers() is False:
+            self._logger.setLevel(logging.INFO)
+            handler = logging.StreamHandler()
+            handler.setLevel(logging.INFO)
+            self._logger.addHandler(handler)
+
         # results = pd.read_csv(model_output_1d, sep=";")
         results = model_output_1d
 
@@ -117,9 +126,9 @@ class SW1Dto2D:
             optimize_normals_maxiter : Maximum number of iteration for normals optimization
         """
 
-        logging.info("-" * 60)
-        logging.info("Compute cross-sections parameters (coordinates and normals)")
-        logging.info("-" * 60)
+        self._logger.info("-" * 60)
+        self._logger.info("Compute cross-sections parameters (coordinates and normals)")
+        self._logger.info("-" * 60)
 
         # Check centerline is set
         if self._centerline is None:
@@ -133,21 +142,21 @@ class SW1Dto2D:
             )
 
         # Compute alpha (ratio of length) of the cross-sections on the centerline
-        logging.info("Compute alpha values for the cross-sections")
+        self._logger.info("Compute alpha values for the cross-sections")
         xs_alpha = self._compute_xs_alpha(enforce_length)
 
         # Compute alpha (ratio of length) of the points on the centerline
-        logging.info("Compute alpha values for the centerline points")
+        self._logger.info("Compute alpha values for the centerline points")
         cl_alpha = self._compute_cl_alpha()
 
         # Compute positions of the cross-sections on the centerline
-        logging.info("Compute cross-sections centers coordinates")
+        self._logger.info("Compute cross-sections centers coordinates")
         xs_coords = self._compute_xs_coords(xs_alpha, cl_alpha)
 
         # Compute (raw) normals of the cross-sections on the centerline
-        logging.info("Compute raw normals")
+        self._logger.info("Compute raw normals")
         xs_normals = self._compute_xs_normals(xs_alpha, cl_alpha)
-        logging.info("")
+        self._logger.info("")
 
         # Optimize normals
         if optimize_normals is True:
@@ -267,9 +276,9 @@ class SW1Dto2D:
                 array of intersection flag
         """
 
-        logging.info("-" * 60)
-        logging.info("Optimization of normals to prevent intersections")
-        logging.info("-" * 60)
+        self._logger.info("-" * 60)
+        self._logger.info("Optimization of normals to prevent intersections")
+        self._logger.info("-" * 60)
 
         # Compute normals angles
         angles = np.arctan2(xs_normals[:, 0], xs_normals[:, 1]) * 180.0 / np.pi
@@ -318,7 +327,7 @@ class SW1Dto2D:
                         intersect_flag[ix2] += 1
             nintersect = np.sum(intersect_flag)
 
-            logging.info(f"Number of intersections: {nintersect}")
+            self._logger.info(f"Number of intersections: {nintersect}")
 
             if nintersect == 0:
                 continue
@@ -328,7 +337,7 @@ class SW1Dto2D:
             seq = np.insert(seq, 0, 2)
             seq_start = np.argwhere(seq > 1).flatten()
 
-            logging.info(f"Number of intersecting ranges: {len(seq_start)}")
+            self._logger.info(f"Number of intersecting ranges: {len(seq_start)}")
 
             for i in range(0, len(seq_start)):
                 start = indices[seq_start[i]]
@@ -338,7 +347,7 @@ class SW1Dto2D:
                 else:
                     end = indices[-1]
 
-                logging.info("Processing intersecting range: %i-%i" % (start, end))
+                self._logger.info("Processing intersecting range: %i-%i" % (start, end))
 
                 nintersect2 = 1
                 while nintersect2 > 0:
@@ -382,7 +391,7 @@ class SW1Dto2D:
                         start = max(0, start - 1)
                         end = min(end + 1, xs_coords.shape[0] - 1)
 
-                logging.info("Intersecting range filtered with range[%i-%i]" % (start, end))
+                self._logger.info("Intersecting range filtered with range[%i-%i]" % (start, end))
 
                 xs_lines[:] = new_lines[:]
                 angles[:] = new_angles[:]
@@ -395,8 +404,8 @@ class SW1Dto2D:
         if iter >= maxiter:
             logging.error("Optimisation failed: maximum iterations reached.")
         else:
-            logging.info("Optimisation successful (%i iterations)." % iter)
-        logging.info("")
+            self._logger.info("Optimisation successful (%i iterations)." % iter)
+        self._logger.info("")
 
         return xs_normals, intersect_flag
 

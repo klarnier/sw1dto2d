@@ -123,3 +123,7 @@ def test_garonne():
     # Export water mask at 10th time (argument it=10 for SW1Dto2D.compute_water_mask)
     poly = sw1dto2d.compute_water_mask(it=10)
     export_to_shp("out/Garonne_water_mask_it10.shp", poly, sw1dto2d)
+
+if __name__ == "__main__":
+
+    test_garonne()
